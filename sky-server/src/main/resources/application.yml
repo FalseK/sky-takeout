@@ -13,7 +13,7 @@ spring:
       username: ${sky.datasource.username}
       password: ${sky.datasource.password}
 
-mybatis:
+mybatis-plus:
   #mapper配置文件
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.sky.entity
@@ -26,7 +26,7 @@ logging:
     com:
       sky:
         mapper: debug
-        service: info
+        service: debug
         controller: info
 
 sky:
