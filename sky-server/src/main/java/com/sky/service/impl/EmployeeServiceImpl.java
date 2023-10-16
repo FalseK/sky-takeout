@@ -1,5 +1,9 @@
 package com.sky.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sky.constant.MessageConstant;
@@ -8,14 +12,19 @@ import com.sky.constant.StatusConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.EmployeeDTO;
 import com.sky.dto.EmployeeLoginDTO;
+import com.sky.dto.EmployeePageQueryDTO;
 import com.sky.entity.Employee;
 import com.sky.exception.AccountLockedException;
 import com.sky.exception.AccountNotFoundException;
 import com.sky.exception.PasswordErrorException;
 import com.sky.mapper.EmployeeMapper;
+import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.EmployeeService;
 import com.sky.utils.AdminHolder;
+import com.sky.utils.JwtUtil;
+import io.jsonwebtoken.Claims;
+import io.swagger.models.auth.In;
 import org.apache.tomcat.util.security.MD5Encoder;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +34,7 @@ import sun.security.provider.MD5;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper,Employee> implements EmployeeService {
@@ -98,4 +108,48 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper,Employee> im
 
         return Result.success();
     }
+
+    @Override
+    public Result<PageResult> pageQuery(EmployeePageQueryDTO employeePageQueryDTO) {
+
+        int currentPage = employeePageQueryDTO.getPage();
+        int pageSize = employeePageQueryDTO.getPageSize();
+        String name = employeePageQueryDTO.getName();
+
+        Page<Employee> pageParam = new Page<>(currentPage,pageSize);
+
+        if (name != null && !"".equals(name)){
+            Page<Employee> page = page(pageParam, new LambdaQueryWrapper<Employee>().like(Employee::getName, name));
+            PageResult result = new PageResult(page.getTotal(),page.getRecords());
+            return Result.success(result);
+        }
+
+
+        @SuppressWarnings("unchecked")
+        Page<Employee> page = page(pageParam, new LambdaQueryWrapper<Employee>().orderByDesc(Employee::getUpdateTime));
+
+        PageResult result = new PageResult(page.getTotal(), page.getRecords());
+
+        return Result.success(result);
+    }
+
+    @Override
+    public Result<String> statusChange(Integer status, Long id) {
+
+        Long userId = BaseContext.getCurrentId();
+
+        boolean update = update(new LambdaUpdateWrapper<Employee>()
+                .eq(Employee::getId, id)
+                .set(Employee::getStatus, status)
+                .set(Employee::getUpdateTime,LocalDateTime.now())
+                .set(Employee::getUpdateUser,userId));
+
+        if (!update){
+            return Result.error("修改失败");
+        }
+
+        return Result.success();
+    }
+
+
 }
