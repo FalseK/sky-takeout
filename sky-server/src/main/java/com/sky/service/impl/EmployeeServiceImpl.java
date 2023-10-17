@@ -21,7 +21,6 @@ import com.sky.mapper.EmployeeMapper;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.EmployeeService;
-import com.sky.utils.AdminHolder;
 import com.sky.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.swagger.models.auth.In;
@@ -86,22 +85,24 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper,Employee> im
 
         BeanUtils.copyProperties(employeeDTO,employee);
 
-        LocalDateTime now = LocalDateTime.now();
+//        LocalDateTime now = LocalDateTime.now();
+//
+//        employee.setCreateTime(now);
+//        employee.setUpdateTime(now);
 
-        employee.setCreateTime(now);
-        employee.setUpdateTime(now);
         employee.setStatus(StatusConstant.ENABLE);
         employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes()));
 
 
 //        Long adminId = AdminHolder.getAdminId();
 
-        Long currentId = BaseContext.getCurrentId();
+//        Long currentId = BaseContext.getCurrentId();
 
-        employee.setCreateUser(currentId);
-        employee.setUpdateUser(currentId);
+//        employee.setCreateUser(currentId);
+//        employee.setUpdateUser(currentId);
 
         boolean flag = save(employee);
+
 
 
 //        employeeMapper.insert(employee);
@@ -136,13 +137,24 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper,Employee> im
     @Override
     public Result<String> statusChange(Integer status, Long id) {
 
-        Long userId = BaseContext.getCurrentId();
+//        Long userId = BaseContext.getCurrentId();
 
-        boolean update = update(new LambdaUpdateWrapper<Employee>()
-                .eq(Employee::getId, id)
-                .set(Employee::getStatus, status)
-                .set(Employee::getUpdateTime,LocalDateTime.now())
-                .set(Employee::getUpdateUser,userId));
+//        boolean update = update(new LambdaUpdateWrapper<Employee>()
+//                .eq(Employee::getId, id)
+//                .set(Employee::getStatus, status)
+//                .set(Employee::getUpdateTime,LocalDateTime.now())
+//                .set(Employee::getUpdateUser,userId));
+
+//        boolean update = update(new LambdaUpdateWrapper<Employee>()
+//                .eq(Employee::getId, id)
+//                .set(Employee::getStatus, status));
+
+        Employee employee = Employee.builder().id(id)
+                .status(status)
+                .build();
+
+        boolean update = updateById(employee);
+
 
         if (!update){
             return Result.error("修改失败");
