@@ -119,15 +119,18 @@ public class EmployeeServiceImpl extends ServiceImpl<EmployeeMapper,Employee> im
 
         Page<Employee> pageParam = new Page<>(currentPage,pageSize);
 
-        if (name != null && !"".equals(name)){
-            Page<Employee> page = page(pageParam, new LambdaQueryWrapper<Employee>().like(Employee::getName, name));
-            PageResult result = new PageResult(page.getTotal(),page.getRecords());
-            return Result.success(result);
-        }
+//        if (name != null && !"".equals(name)){
+//            Page<Employee> page = page(pageParam, new LambdaQueryWrapper<Employee>().like(Employee::getName, name));
+//            PageResult result = new PageResult(page.getTotal(),page.getRecords());
+//            return Result.success(result);
+//        }
 
 
         @SuppressWarnings("unchecked")
-        Page<Employee> page = page(pageParam, new LambdaQueryWrapper<Employee>().orderByDesc(Employee::getUpdateTime));
+        Page<Employee> page = page(pageParam,
+                new LambdaQueryWrapper<Employee>()
+                        .eq((name != null && !"".equals(name)),Employee::getName,name)
+                        .orderByDesc(Employee::getUpdateTime));
 
         PageResult result = new PageResult(page.getTotal(), page.getRecords());
 
