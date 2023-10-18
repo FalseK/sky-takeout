@@ -3,6 +3,7 @@ package com.sky.controller.admin;
 import com.github.pagehelper.Page;
 import com.sky.dto.CategoryDTO;
 import com.sky.dto.CategoryPageQueryDTO;
+import com.sky.entity.Category;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.CategoryService;
@@ -25,6 +26,13 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
+
+    @GetMapping("/list")
+    @ApiOperation("查询菜品分类")
+    public Result<List<Category>> list(Integer type){
+        return categoryService.listByType(type);
+
+    }
 
     @GetMapping("/page")
     @ApiOperation("条件分页查询分类")

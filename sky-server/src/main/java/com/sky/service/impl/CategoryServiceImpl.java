@@ -18,6 +18,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> implements CategoryService {
 
@@ -105,6 +107,17 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         }
 
         return Result.error("修改失败");
+
+    }
+
+    @Override
+    public Result<List<Category>> listByType(Integer type) {
+
+        List<Category> list = list(new LambdaQueryWrapper<Category>()
+                .eq(Category::getType, type)
+                .eq(Category::getStatus,1));
+
+        return Result.success(list);
 
     }
 

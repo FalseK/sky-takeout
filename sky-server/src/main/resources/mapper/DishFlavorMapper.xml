@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sky.mapper.DishFlavorMapper">
+
+    <!-- resultMap模板 -->
+
+    <!--
+         id : 表示自定义映射的唯一标识
+         type : 查询数据要映射的实体类的类型
+         property : 实体类中的属性名
+         column : 映射关系中的字段名(表的列)
+         result : 普通字段的映射关系
+         association : 处理多对一映射关系
+         collection : 设置一对多的映射关系
+            用于处理多表联合查询结果
+    -->
+
+
+    <insert id="saveBatch">
+        insert into dish_flavor(dish_id,name,value) values
+        <foreach collection="flavors" item="df" separator=",">
+            (#{df.dishId},#{df.name},#{df.value})
+        </foreach>
+    </insert>
+</mapper>

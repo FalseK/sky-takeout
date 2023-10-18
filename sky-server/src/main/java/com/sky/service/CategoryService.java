@@ -9,6 +9,8 @@ import com.sky.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 public interface CategoryService extends IService<Category> {
     Result<PageResult> pageQuery(CategoryPageQueryDTO categoryPageQueryDTO);
 
@@ -19,4 +21,6 @@ public interface CategoryService extends IService<Category> {
     Result updateCategory(CategoryDTO categoryDTO);
 
     Result deleteById(Long id);
+
+    Result<List<Category>> listByType(Integer type);
 }
