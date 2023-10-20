@@ -32,6 +32,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/admin/employee")
+@Api(tags = "员工管理接口")
 @Slf4j
 public class EmployeeController {
 

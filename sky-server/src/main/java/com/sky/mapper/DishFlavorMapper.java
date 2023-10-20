@@ -12,4 +12,8 @@ public interface DishFlavorMapper extends BaseMapper<DishFlavor> {
 
     int saveBatch(List<DishFlavor> flavors);
 
+    int countBatchByDishIds(List<Long> ids);
+
+    int deleteBatchByDishIds(List<Long> ids);
+
 }

@@ -2,6 +2,7 @@ package com.sky.controller.admin;
 import cn.hutool.core.util.StrUtil;
 import com.sky.constant.SystemConstant;
 import com.sky.result.Result;
+import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,6 +16,7 @@ import java.util.UUID;
 @RestController
 @Slf4j
 @RequestMapping("/admin/common")
+@Api(tags = "通用接口")
 public class CommonController {
 
     @PostMapping("/upload")

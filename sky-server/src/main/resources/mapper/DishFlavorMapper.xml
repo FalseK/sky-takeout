@@ -24,4 +24,23 @@
             (#{df.dishId},#{df.name},#{df.value})
         </foreach>
     </insert>
+
+    <delete id="deleteBatchByDishIds">
+        delete from dish_flavor where dish_id in
+            <foreach collection="ids" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+    </delete>
+
+    <select id="countBatchByDishIds" resultType="java.lang.Integer">
+        select count(*) from dish_flavor
+        <where>
+            <foreach collection="ids" item="id" separator="or">
+                dish_id = #{id}
+            </foreach>
+        </where>
+    </select>
+
+
+
 </mapper>

@@ -20,6 +20,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/admin/category")
+@Api(tags = "分类接口")
 @Slf4j
 public class CategoryController {
 
