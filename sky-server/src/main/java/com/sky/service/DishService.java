@@ -24,4 +24,6 @@ public interface DishService extends IService<Dish> {
     Result updateDishWithFlavor(DishDTO dishDTO);
 
     Result<List<Dish>> getByCategoryId(Long categoryId);
+
+    Result changeStatus(Integer status, Long id);
 }

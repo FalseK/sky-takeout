@@ -40,14 +40,17 @@ public class DishController {
     @ApiOperation("修改菜品状态")
     public Result changeStatus(@PathVariable Integer status, Long id) {
 
-        boolean flag = dishService.updateById(Dish.builder().status(status)
-                .id(id).build());
+//        boolean flag = dishService.updateById(Dish.builder().status(status)
+//                .id(id).build());
+//
+//        if (flag){
+//            return Result.success();
+//        }
+//
+//        return Result.error("更改失败");
 
-        if (flag){
-            return Result.success();
-        }
+        return dishService.changeStatus(status,id);
 
-        return Result.error("更改失败");
 
     }
 

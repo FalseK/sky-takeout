@@ -4,91 +4,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.sky.mapper.SetmealMapper">
 
-    <!-- resultMap模板 -->
 
-    <!--
-         id : 表示自定义映射的唯一标识
-         type : 查询数据要映射的实体类的类型
-         property : 实体类中的属性名
-         column : 映射关系中的字段名(表的列)
-         result : 普通字段的映射关系
-         association : 处理多对一映射关系
-         collection : 设置一对多的映射关系
-            用于处理多表联合查询结果
-    -->
-
-    <!--
-        多对一的情况(association)
-        <resultMap id="empMap" type="Emp">
-            <id property="empno" column="empno"></id>
-            <result property="ename" column="ename"></result>
-            <result property="job" column="job"></result>
-            <result property="mgr" column="mgr"></result>
-            <result property="hiredate" column="hiredate"></result>
-            <result property="sal" column="sal"></result>
-            <result property="comm" column="comm"></result>
-            <association property="dept" javaType="Dept">
-                <id property="deptno" column="deptno"></id>
-                <result property="dname" column="dname"></result>
-                <result property="loc" column="loc"></result>
-            </association>
-        </resultMap>
-    -->
-
-    <!--
-        一对多的情况(collection)
-        注意collection标签中为 ofType
-        <resultMap id="deptMap" type="Dept">
-            <id property="deptno" column="deptno"></id>
-            <result property="dname" column="dname"></result>
-            <result property="loc" column="loc"></result>
-            <collection property="emps" ofType="Emp">
-                <id property="empno" column="empno"></id>
-                <result property="ename" column="ename"></result>
-                <result property="job" column="job"></result>
-                <result property="mgr" column="mgr"></result>
-                <result property="hiredate" column="hiredate"></result>
-                <result property="sal" column="sal"></result>
-                <result property="comm" column="comm"></result>
-            </collection>
-        </resultMap>
-    -->
-
-
-    <!--用分步查询-->
-    <!--
-        分步查询的resultMap结构
-        association标签中插入 select 属性
-            属性值为下一步执行的 sql语句 的唯一标识(方法的全路径)
-            column属性为传入下一步 sql语句的参数值
-        使用 fetchType 实现延迟加载
-
-        <resultMap id="empMapStpe" type="Emp">
-            <id property="empno" column="empno"></id>
-            <result property="ename" column="ename"></result>
-            <result property="job" column="job"></result>
-            <result property="mgr" column="mgr"></result>
-            <result property="hiredate" column="hiredate"></result>
-            <result property="sal" column="sal"></result>
-            <result property="comm" column="comm"></result>
-            <association property="dept" javaType="Dept" fetchType="lazy"
-                         select="com.hiiragi.mybatis.mapper.DeptMapper.selectEmpAndDeptByIdStepTwo"
-                         column="deptno">
-            </association>
-        </resultMap>
-
-        第一步查询
-        <select id="selectEmpAndDeptByIdStepOne" resultMap="empMapStpe">
-            select * from emp where empno = #{empno}
-        </select>
-
-        第二步查询
-
-        <select id="selectEmpAndDeptByIdStepTwo" resultType="Dept">
-            select * from dept where deptno = #{deptno};
-        </select>
-
-    -->
     <select id="countByDishIds" resultType="java.lang.Integer">
         select count(*) from setmeal_dish
         <where>
@@ -96,5 +12,60 @@
                 dish_id = #{id}
             </foreach>
         </where>
+    </select>
+
+    <resultMap id="setmealVO" type="com.sky.vo.SetmealVO">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+        <result property="price" column="price"/>
+        <result property="status" column="status"/>
+        <result property="description" column="description"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="image" column="image"/>
+        <result property="updateTime" column="update_time"/>
+        <collection property="setmealDishes" ofType="com.sky.entity.SetmealDish">
+            <id property="id" column="setmeal_dish_id"/>
+            <result property="dishId" column="dish_id"/>
+            <result property="name" column="dish_name"/>
+            <result property="price" column="dish_price"/>
+            <result property="copies" column="copies"/>
+            <result property="setmealId" column="setmeal_id"/>
+        </collection>
+    </resultMap>
+
+    <!--    IPage<SetmealVO> pageQuery(IPage<SetmealVO> page, SetmealPageQueryDTO setmealPageQueryDTO);-->
+    <select id="pageQuery" resultType="com.sky.vo.SetmealVO">
+        select sm.*,c.name as category_name,c.id
+        from setmeal sm
+        left join category c on sm.category_id = c.id
+        <where>
+            <if test="setmealPageQueryDTO.categoryId != null">
+                and sm.id = #{setmealPageQueryDTO.categoryId}
+            </if>
+            <if test="setmealPageQueryDTO.name != null">
+                and sm.name like concat('%',#{setmealPageQueryDTO.name},'%')
+            </if>
+            <if test="setmealPageQueryDTO.status != null">
+                and sm.status = #{setmealPageQueryDTO.status}
+            </if>
+        </where>
+        order by sm.update_time desc
+    </select>
+
+    <select id="getByIdWithDishes" resultMap="setmealVO">
+        select sm.*,
+               c.name    as category_name,
+               c.id      as category_id,
+               smd.id    as setmeal_dish_id,
+               setmeal_id,
+               dish_id,
+               smd.name  as dish_name,
+               smd.price as dish_price,
+               copies
+        from setmeal sm
+                 left join setmeal_dish smd on sm.id = smd.setmeal_id
+                 left join category c on sm.category_id = c.id
+        where sm.id = #{id}
     </select>
 </mapper>

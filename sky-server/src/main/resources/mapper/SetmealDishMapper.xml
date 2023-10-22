@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sky.mapper.SetmealDishMapper">
+
+    <insert id="saveBatch">
+        insert into setmeal_dish(setmeal_id, dish_id, name, price, copies) values
+        <foreach collection="setmealDishes" item="setmealDish" separator=",">
+            (#{setmealDish.setmealId},#{setmealDish.dishId},#{setmealDish.name},#{setmealDish.price},#{setmealDish.copies})
+        </foreach>
+    </insert>
+
+    <select id="countSetmealOnSaleByIds" resultType="java.lang.Integer">
+        select count(*)
+        from setmeal
+        where
+        status = 1
+        and id in
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="countDishesUnSaleById" resultType="java.lang.Integer">
+        select count(*)
+        from setmeal_dish sd
+                 left join dish d on sd.dish_id = d.id
+        where sd.setmeal_id = #{id}
+        and d.status = 0
+    </select>
+
+
+</mapper>

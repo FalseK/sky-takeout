@@ -1,7 +1,10 @@
 package com.sky.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.entity.Setmeal;
+import com.sky.vo.SetmealVO;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -10,5 +13,9 @@ import java.util.List;
 public interface SetmealMapper extends BaseMapper<Setmeal> {
 
     int countByDishIds(List<Long> ids);
+
+    IPage<SetmealVO> pageQuery(IPage<SetmealVO> page, SetmealPageQueryDTO setmealPageQueryDTO);
+
+    SetmealVO getByIdWithDishes(Long id);
 
 }
