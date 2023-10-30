@@ -212,4 +212,12 @@ public class DishServiceImpl extends ServiceImpl<DishMapper, Dish> implements Di
 
         return Result.success();
     }
+
+    @Override
+    public Result<List<DishVO>> getDishByCategoryIdWithFlavors(Long categoryId) {
+
+        List<DishVO> DishVOList = getBaseMapper().getDishVOByCategoryId(categoryId);
+
+        return Result.success(DishVOList);
+    }
 }

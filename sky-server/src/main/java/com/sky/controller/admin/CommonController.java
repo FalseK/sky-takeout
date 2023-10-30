@@ -30,7 +30,7 @@ public class CommonController {
             file.transferTo(new File(SystemConstant.IMAGE_UPLOAD_DIR, fileName));
             // 返回结果
             log.debug("文件上传成功，{}", fileName);
-            return Result.success("/img" + fileName);
+            return Result.success("http://localhost/img" + fileName);
         } catch (IOException e) {
             throw new RuntimeException("文件上传失败", e);
         }

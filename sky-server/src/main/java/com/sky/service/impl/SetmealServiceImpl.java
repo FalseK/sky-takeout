@@ -15,6 +15,7 @@ import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.SetmealService;
+import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -176,5 +177,12 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         updateById(setmeal);
 
         return Result.success();
+    }
+
+
+    @Override
+    public Result<List<DishItemVO>> getDishesWithImageById(Long id) {
+        List<DishItemVO> dishItemVOList = baseMapper.getDishesWithImageById(id);
+        return Result.success(dishItemVOList);
     }
 }

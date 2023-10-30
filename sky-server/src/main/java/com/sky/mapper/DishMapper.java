@@ -22,4 +22,5 @@ public interface DishMapper extends BaseMapper<Dish> {
     int checkDishDelete(List<Long> ids);
 
 
+    List<DishVO> getDishVOByCategoryId(Long categoryId);
 }

@@ -75,4 +75,24 @@
         </foreach>
         and d.status = 1
     </select>
+
+    <select id="getDishVOByCategoryId" resultMap="dishMap">
+        select d.id,
+               d.name,
+               d.category_id,
+               d.price,
+               d.image,
+               d.description,
+               d.status,
+               d.update_time,
+               c.name   as categoryName,
+               df.id    as df_id,
+               df.name  as df_name,
+               df.value as df_value,
+               df.dish_id  df_dish_id
+        from dish d
+                 left outer join category c on d.category_id = c.id
+                 left outer join dish_flavor df on d.id = df.dish_id
+        where d.category_id = #{categoryId}
+    </select>
 </mapper>

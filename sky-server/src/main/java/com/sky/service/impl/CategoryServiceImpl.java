@@ -114,7 +114,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
     public Result<List<Category>> listByType(Integer type) {
 
         List<Category> list = list(new LambdaQueryWrapper<Category>()
-                .eq(Category::getType, type)
+                .eq(type != null,Category::getType, type)
                 .eq(Category::getStatus,1));
 
         return Result.success(list);

@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.entity.Setmeal;
+import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -18,4 +19,5 @@ public interface SetmealMapper extends BaseMapper<Setmeal> {
 
     SetmealVO getByIdWithDishes(Long id);
 
+    List<DishItemVO> getDishesWithImageById(Long id);
 }
