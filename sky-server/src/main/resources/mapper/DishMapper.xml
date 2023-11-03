@@ -94,5 +94,6 @@
                  left outer join category c on d.category_id = c.id
                  left outer join dish_flavor df on d.id = df.dish_id
         where d.category_id = #{categoryId}
+        AND d.status = 1
     </select>
 </mapper>

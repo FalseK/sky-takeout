@@ -28,4 +28,6 @@ public interface SetmealService extends IService<Setmeal> {
     Result updateWithDishes(SetmealDTO setmealDTO);
 
     Result<List<DishItemVO>> getDishesWithImageById(Long id);
+
+    Result<List<Setmeal>> listByCategoryId(Long categoryId);
 }

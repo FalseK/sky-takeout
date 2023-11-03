@@ -54,7 +54,7 @@ public class JwtTokenUserInterceptor implements HandlerInterceptor {
             BaseContext.setCurrentId(userId);
 
 
-            log.info("当前用户id：", userId);
+            log.info("当前用户id：{}", userId);
             //3、通过，放行
             return true;
         } catch (Exception ex) {

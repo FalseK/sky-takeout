@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sky.constant.MessageConstant;
+import com.sky.constant.RedisConstant;
 import com.sky.dto.SetmealDTO;
 import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.entity.Setmeal;
@@ -15,12 +16,15 @@ import com.sky.mapper.SetmealMapper;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.SetmealService;
+import com.sky.utils.CacheClient;
 import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.annotation.Resource;
 import java.util.List;
 
 @Service
@@ -29,6 +33,8 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
     @Autowired
     private SetmealDishMapper setmealDishMapper;
 
+    @Autowired
+    private CacheClient cacheClient;
 
     /**
      * 新增套餐
@@ -48,6 +54,9 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         List<SetmealDish> setmealDishes = setmealDTO.getSetmealDishes();
 
         save(setmeal);
+
+        //清理缓存
+        cacheClient.cleanCache(RedisConstant.SETMEAL_CACHE_KEY);
 
         if (setmealDishes != null && !setmealDishes.isEmpty()){
 
@@ -88,13 +97,14 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      * @param status
      * @return
      */
-    // TODO 启售时判断菜品是否在售
     @Override
     public Result statusChange(Integer status,Long id) {
 
         Setmeal setmeal = new Setmeal();
         setmeal.setId(id);
 
+        //清理缓存
+        cacheClient.cleanCache(RedisConstant.SETMEAL_CACHE_KEY);
 
         if (status == 0){
             setmeal.setStatus(status);
@@ -117,6 +127,7 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      * @param ids
      * @return
      */
+    @Transactional
     @Override
     public Result deleteBatch(List<Long> ids) {
 
@@ -129,6 +140,10 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         }
 
         boolean flag = removeByIds(ids);
+
+        setmealDishMapper.delete(new LambdaQueryWrapper<SetmealDish>().in(SetmealDish::getSetmealId, ids));
+
+        cacheClient.cleanCache(RedisConstant.SETMEAL_CACHE_KEY);
 
         if(!flag){
             return Result.error("删除失败");
@@ -158,6 +173,9 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
     @Override
     public Result updateWithDishes(SetmealDTO setmealDTO) {
 
+        //清理缓存
+        cacheClient.cleanCache(RedisConstant.SETMEAL_CACHE_KEY);
+
         Setmeal setmeal = new Setmeal();
 
         BeanUtil.copyProperties(setmealDTO,setmeal);
@@ -179,10 +197,42 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         return Result.success();
     }
 
-
+    /**
+     * 根据套餐id查询菜品
+     * @param id
+     * @return
+     */
     @Override
     public Result<List<DishItemVO>> getDishesWithImageById(Long id) {
-        List<DishItemVO> dishItemVOList = baseMapper.getDishesWithImageById(id);
+
+        List<DishItemVO> dishItemVOList = cacheClient.queryListInCache(
+                "setmeal_dishes:",
+                id,
+                DishItemVO.class,
+                baseMapper::getDishesWithImageById,
+                null,
+                null);
+
         return Result.success(dishItemVOList);
+    }
+
+    /**
+     * 根据分类Id查询套餐
+     * @param categoryId
+     * @return
+     */
+    @Override
+    public Result<List<Setmeal>> listByCategoryId(Long categoryId) {
+
+        List<Setmeal> setmealList = cacheClient.queryListInCache(
+                RedisConstant.SETMEAL_CACHE_KEY,
+                categoryId, Setmeal.class,
+                id -> list(new LambdaQueryWrapper<Setmeal>()
+                        .eq(Setmeal::getCategoryId, id)
+                        .eq(Setmeal::getStatus, 1)),
+                null, null);
+
+
+        return Result.success(setmealList);
     }
 }
