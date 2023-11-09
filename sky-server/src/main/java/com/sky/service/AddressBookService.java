@@ -6,7 +6,7 @@ import com.sky.result.Result;
 
 import java.util.List;
 
-public interface AddressService extends IService<AddressBook> {
+public interface AddressBookService extends IService<AddressBook> {
     Result<List<AddressBook>> listByUserId();
 
     void setDefault(AddressBook addressBook);

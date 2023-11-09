@@ -7,14 +7,14 @@ import com.sky.context.BaseContext;
 import com.sky.entity.AddressBook;
 import com.sky.mapper.AddressBookMapper;
 import com.sky.result.Result;
-import com.sky.service.AddressService;
+import com.sky.service.AddressBookService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-public class AddressServiceImpl extends ServiceImpl<AddressBookMapper, AddressBook> implements AddressService {
+public class AddressBookServiceImpl extends ServiceImpl<AddressBookMapper, AddressBook> implements AddressBookService {
     /**
      * C端根据用户Id获取地址簿信息
      * @return

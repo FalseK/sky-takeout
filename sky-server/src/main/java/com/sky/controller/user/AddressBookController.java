@@ -1,11 +1,10 @@
 package com.sky.controller.user;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import com.sky.context.BaseContext;
 import com.sky.entity.AddressBook;
 import com.sky.result.Result;
-import com.sky.service.AddressService;
+import com.sky.service.AddressBookService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +20,7 @@ import java.util.List;
 public class AddressBookController {
 
     @Autowired
-    private AddressService addressBookService;
+    private AddressBookService addressBookService;
 
     @GetMapping("/list")
     @ApiOperation("C端获取用户地址簿")
