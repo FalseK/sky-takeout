@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sky.mapper.OrderMapper">
+
+    <sql id="selectOrdersVO">
+        select
+            o.id, o.number, o.status, o.user_id, o.address_book_id, o.order_time, o.checkout_time, o.pay_method,
+            o.pay_status, o.amount, o.remark, o.phone, o.address, o.user_name, o.consignee, o.cancel_reason,
+            o.rejection_reason, o.cancel_time, o.estimated_delivery_time, o.delivery_status, o.delivery_time, o.pack_amount,
+            o.tableware_number, tableware_status,
+            od.id as order_detail_id,
+            od.number as order_detail_number,
+            od.amount as order_detail_amount,
+            od.name, od.image, od.order_id, od.dish_id, od.setmeal_id,
+            od.dish_flavor
+        from orders o
+                 left join order_detail od on o.id = od.order_id
+    </sql>
+
+    <resultMap id="orderVOMap" type="com.sky.vo.OrderVO" autoMapping="true">
+        <id property="id" column="id"/>
+        <!--        <result property="number" column="number"/>-->
+        <!--        <result property="status" column="status"/>-->
+        <!--        <result property="userId" column="user_id"/>-->
+        <!--        <result property="addressBookId" column="address_book_id"/>-->
+        <!--        <result property="orderTime" column="order_time"/>-->
+        <!--        <result property="checkoutTime" column="checkout_time"/>-->
+        <!--        <result property="payMethod" column="pay_method"/>-->
+        <!--        <result property="payStatus" column="pay_status"/>-->
+        <!--        <result property="amount" column="amount"/>-->
+        <!--        <result property="remark" column="remark"/>-->
+        <!--        <result property="userName" column="user_name"/>-->
+        <!--        <result property="phone" column="phone"/>-->
+        <!--        <result property="address" column="address"/>-->
+        <!--        <result property="consignee" column="consignee"/>-->
+        <!--        <result property="cancelReason" column="cancel_reason"/>-->
+        <!--        <result property="rejectionReason" column="rejection_reason"/>-->
+        <!--        <result property="cancelTime" column="cancel_time"/>-->
+        <!--        <result property="estimatedDeliveryTime" column="estimated_delivery_time"/>-->
+        <!--        <result property="deliveryStatus" column="delivery_status"/>-->
+        <!--        <result property="deliveryTime" column="delivery_time"/>-->
+        <!--        <result property="packAmount" column="pack_amount"/>-->
+        <!--        <result property="tablewareNumber" column="tableware_number"/>-->
+        <!--        <result property="tablewareStatus" column="tableware_status"/>-->
+
+        <collection property="orderDetailList" ofType="com.sky.entity.OrderDetail">
+            <id property="id" column="order_detail_id"/>
+            <result property="name" column="name"/>
+            <result property="image" column="image"/>
+            <result property="dishId" column="dish_id"/>
+            <result property="setmealId" column="setmeal_id"/>
+            <result property="dishFlavor" column="dish_flavor"/>
+            <result property="number" column="order_detail_number"/>
+            <result property="amount" column="order_detail_amount"/>
+            <result property="orderId" column="order_id"/>
+        </collection>
+    </resultMap>
+
+    <select id="pageQueryOrderVO" resultMap="orderVOMap">
+        <include refid="selectOrdersVO"/>
+        <where>
+            <if test="ordersPageQueryDTO.number != null">
+                and o.number like concat('%',#{ordersPageQueryDTO.number},'%')
+            </if>
+            <if test="ordersPageQueryDTO.phone != null">
+                and o.phone like concat('%',#{ordersPageQueryDTO.phone},'%')
+            </if>
+            <if test="ordersPageQueryDTO.status != null">
+                and o.status = #{ordersPageQueryDTO.status}
+            </if>
+            <if test="ordersPageQueryDTO.beginTime != null">
+                and o.order_time &gt; #{ordersPageQueryDTO.beginTime}
+            </if>
+            <if test="ordersPageQueryDTO.endTime != null">
+                and o.order_time $lt; #{ordersPageQueryDTO.endTime}
+            </if>
+        </where>
+        order by order_time desc
+    </select>
+
+    <select id="getOrdersVOById" resultMap="orderVOMap">
+        <include refid="selectOrdersVO"/>
+        where o.id = #{id}
+    </select>
+
+
+</mapper>

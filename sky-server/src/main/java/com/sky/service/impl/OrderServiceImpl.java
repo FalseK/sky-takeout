@@ -2,13 +2,15 @@ package com.sky.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.alibaba.fastjson.JSONObject;
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.OrdersDTO;
+import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.entity.*;
@@ -16,9 +18,9 @@ import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
-import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrderMapper;
+import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.AddressBookService;
 import com.sky.service.OrderService;
@@ -27,11 +29,14 @@ import com.sky.service.UserService;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
+import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -88,7 +93,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         orders.setNumber(String.valueOf(System.currentTimeMillis()));
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
-
+        orders.setAddress(addressBook.getProvinceName()
+                + addressBook.getCityName()
+                + addressBook.getDistrictName()
+                + addressBook.getDetail());
         save(orders);
 
         //插入orderDetail数据
@@ -148,11 +156,11 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
         LocalDateTime checkOutTime = LocalDateTime.now();
 
-        update(new LambdaUpdateWrapper<Orders>().eq(Orders::getNumber,orderNumber)
-                .eq(Orders::getUserId,userId)
-                .set(Orders::getStatus,Orders.TO_BE_CONFIRMED)
-                .set(Orders::getPayStatus,Orders.PAID)
-                .set(Orders::getCheckoutTime,checkOutTime));
+        update(new LambdaUpdateWrapper<Orders>().eq(Orders::getNumber, orderNumber)
+                .eq(Orders::getUserId, userId)
+                .set(Orders::getStatus, Orders.TO_BE_CONFIRMED)
+                .set(Orders::getPayStatus, Orders.PAID)
+                .set(Orders::getCheckoutTime, checkOutTime));
         return vo;
     }
 
@@ -177,5 +185,112 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         updateById(orders);
     }
 
+    /**
+     * 分页查询历史订单
+     *
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    @Override
+    public Result<PageResult> pageQueryHistoryOrders4User(OrdersPageQueryDTO ordersPageQueryDTO) {
 
+        int currentPage = ordersPageQueryDTO.getPage();
+        int pageSize = ordersPageQueryDTO.getPageSize();
+
+        Page<OrderVO> page = new Page<>(currentPage, pageSize);
+
+        IPage<OrderVO> orderDTOPage = baseMapper.pageQueryOrderVO(page, ordersPageQueryDTO);
+
+//        List<OrderVO> ordersDTOList = orderDTOPage.getRecords();
+//
+//        List<OrderVO> collect = ordersDTOList.stream().map(ordersDTO -> {
+//            OrderVO orderVO = new OrderVO();
+//            orderVO.setOrderDetailList(ordersDTO.getOrderDetails());
+//            return orderVO;
+//        }).collect(Collectors.toList());
+
+        PageResult result = new PageResult();
+        result.setTotal(orderDTOPage.getTotal());
+        result.setRecords(orderDTOPage.getRecords());
+
+        return Result.success(result);
+    }
+
+
+    /**
+     * 查询订单详情
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public Result<OrderVO> details(Long id) {
+
+        if (id == null) {
+            return Result.error("查询失败");
+        }
+
+        OrderVO ordersVO = baseMapper.getOrdersVOById(id);
+        return Result.success(ordersVO);
+    }
+
+    /**
+     * 取消订单
+     * @param id
+     * @return
+     */
+    @Override
+    public Result cancel(Long id) {
+
+        Orders orders = getById(id);
+
+        if (orders == null){
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        if (orders.getStatus() > 2){
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        if (orders.getStatus().equals(Orders.TO_BE_CONFIRMED)){
+            //TODO 调用微信退款接口
+            orders.setPayStatus(Orders.REFUND);
+        }
+
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelReason("用户取消");
+        orders.setCancelTime(LocalDateTime.now());
+        updateById(orders);
+
+        return Result.success();
+    }
+
+    /**
+     * 再来一单
+     * @param id
+     * @return
+     */
+    @Override
+    public Result repetition(Long id) {
+
+        Long userId = BaseContext.getCurrentId();
+
+        Orders orders = getById(id);
+        if (orders == null){
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        List<OrderDetail> orderDetails = orderDetailMapper.selectList(new LambdaQueryWrapper<OrderDetail>()
+                .eq(OrderDetail::getOrderId, id));
+
+        List<ShoppingCart> shoppingCartList = orderDetails.stream().map(orderDetail -> {
+            ShoppingCart shoppingCart = BeanUtil.copyProperties(orderDetail, ShoppingCart.class,"id");
+            shoppingCart.setUserId(userId);
+            return shoppingCart;
+        }).collect(Collectors.toList());
+
+        shoppingCartService.saveBatch(shoppingCartList);
+
+        return Result.success();
+    }
 }
