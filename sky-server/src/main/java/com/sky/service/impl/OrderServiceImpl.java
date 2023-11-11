@@ -1,7 +1,9 @@
 package com.sky.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.alibaba.fastjson.JSONObject;
+import cn.hutool.json.JSONArray;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -9,7 +11,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersDTO;
 import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
@@ -20,17 +21,22 @@ import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrderMapper;
+import com.sky.properties.BaiduApiProperties;
+import com.sky.properties.ShopProperties;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.AddressBookService;
 import com.sky.service.OrderService;
 import com.sky.service.ShoppingCartService;
 import com.sky.service.UserService;
+import com.sky.utils.BaiduUtil;
+import com.sky.utils.HttpClientUtil;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import io.swagger.annotations.ApiOperation;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,10 +44,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implements OrderService {
 
     @Autowired
@@ -59,6 +68,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
     @Autowired
     private UserService userService;
 
+    @Autowired
+    private ShopProperties shopProperties;
+
+    @Autowired
+    private BaiduApiProperties baiduApiProperties;
+
+    @Autowired
+    private BaiduUtil baiduUtil;
+
     @Transactional
     @Override
     public Result<OrderSubmitVO> submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
@@ -72,6 +90,19 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
             throw new AddressBookBusinessException(MessageConstant.ADDRESS_BOOK_IS_NULL);
         }
 
+        String address = addressBook.getProvinceName()
+                + addressBook.getCityName()
+                + addressBook.getDistrictName()
+                + addressBook.getDetail();
+
+
+        try {
+            checkOutOfRange(address);
+        } catch (Exception e) {
+            return Result.error(e.getMessage());
+        }
+
+
         //判断用户购物车是否为空
         Long userId = BaseContext.getCurrentId();
 
@@ -81,6 +112,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         if (shoppingCartList == null || shoppingCartList.size() == 0) {
             throw new ShoppingCartBusinessException(MessageConstant.SHOPPING_CART_IS_NULL);
         }
+
 
         //插入订单数据
         Orders orders = new Orders();
@@ -93,10 +125,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         orders.setNumber(String.valueOf(System.currentTimeMillis()));
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
-        orders.setAddress(addressBook.getProvinceName()
-                + addressBook.getCityName()
-                + addressBook.getDistrictName()
-                + addressBook.getDetail());
+        orders.setAddress(address);
         save(orders);
 
         //插入orderDetail数据
@@ -146,10 +175,10 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 //        }
 
         JSONObject jsonObject = new JSONObject();
-        jsonObject.put("code", "ORDERPAID");
+        jsonObject.append("code", "ORDERPAID");
 
-        OrderPaymentVO vo = jsonObject.toJavaObject(OrderPaymentVO.class);
-        vo.setPackageStr(jsonObject.getString("package"));
+        OrderPaymentVO vo = jsonObject.toBean(OrderPaymentVO.class);
+        vo.setPackageStr(jsonObject.getStr("package"));
 
         //为替代微信支付成功后的数据库订单状态更新，多定义一个方法进行修改
         //发现没有将支付时间 check_out属性赋值，所以在这里更新
@@ -293,4 +322,28 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
         return Result.success();
     }
+
+
+    /**
+     * 判断是否超出配送范围
+     * @param address
+     */
+    private void checkOutOfRange(String address) {
+
+        String userLatLng = baiduUtil.getUserAddressLatLng(address);
+
+        String shopLat = String.valueOf(shopProperties.getLat());
+        String shopLng = String.valueOf(shopProperties.getLng());
+        String shopLngLat = shopLat + "," + shopLng;
+
+        Integer distance = baiduUtil.getRouteDistance(shopLngLat, userLatLng);
+
+        if (distance > 5000){
+            //配送距离超过5000米
+            throw new OrderBusinessException("超出配送范围");
+        }
+    }
+
 }
+
+

@@ -14,3 +14,11 @@ sky:
   wechat:
     appid: wx8ab3101865c9b418
     secret: 42426c983e8e2fdbfbf4ed3c77ef0689
+  baidu-api:
+    ak: CKpamOzUqmqPSdD0Yj1WdPgP49Y7oyoI
+    geo-url: https://api.map.baidu.com/geocoding/v3
+    route-plan-url: https://api.map.baidu.com/directionlite/v1/driving
+  shop:
+    address: 北京市海淀区上地十街10号
+    lng: 116.3076223267197
+    lat: 40.05682848596073

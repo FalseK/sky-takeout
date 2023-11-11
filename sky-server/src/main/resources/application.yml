@@ -56,3 +56,11 @@ sky:
   wechat:
     appid: ${sky.wechat.appid}
     secret: ${sky/wechat.secret}
+  shop:
+    address: ${sky.shop.address}
+    lng: ${sky.shop.lng}
+    lat: ${sky.shop.lat}
+  baidu-api:
+    ak: ${sky.baidu-api.ak}
+    geo-url: ${sky.baidu-api.geo-url}
+    route-plan-url: ${sky.baidu-api.route-plan-url}
