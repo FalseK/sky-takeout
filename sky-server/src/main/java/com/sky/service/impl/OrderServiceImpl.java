@@ -11,9 +11,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersPageQueryDTO;
-import com.sky.dto.OrdersPaymentDTO;
-import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.*;
 import com.sky.entity.*;
 
 import com.sky.exception.AddressBookBusinessException;
@@ -33,6 +31,7 @@ import com.sky.utils.BaiduUtil;
 import com.sky.utils.HttpClientUtil;
 import com.sky.utils.WeChatPayUtil;
 import com.sky.vo.OrderPaymentVO;
+import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import io.swagger.annotations.ApiOperation;
@@ -70,9 +69,6 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
     @Autowired
     private ShopProperties shopProperties;
-
-    @Autowired
-    private BaiduApiProperties baiduApiProperties;
 
     @Autowired
     private BaiduUtil baiduUtil;
@@ -265,6 +261,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
     /**
      * 取消订单
+     *
      * @param id
      * @return
      */
@@ -273,15 +270,15 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
         Orders orders = getById(id);
 
-        if (orders == null){
+        if (orders == null) {
             throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
         }
 
-        if (orders.getStatus() > 2){
+        if (orders.getStatus() > 2) {
             throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
         }
 
-        if (orders.getStatus().equals(Orders.TO_BE_CONFIRMED)){
+        if (orders.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
             //TODO 调用微信退款接口
             orders.setPayStatus(Orders.REFUND);
         }
@@ -296,6 +293,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
     /**
      * 再来一单
+     *
      * @param id
      * @return
      */
@@ -305,7 +303,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         Long userId = BaseContext.getCurrentId();
 
         Orders orders = getById(id);
-        if (orders == null){
+        if (orders == null) {
             throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
         }
 
@@ -313,7 +311,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
                 .eq(OrderDetail::getOrderId, id));
 
         List<ShoppingCart> shoppingCartList = orderDetails.stream().map(orderDetail -> {
-            ShoppingCart shoppingCart = BeanUtil.copyProperties(orderDetail, ShoppingCart.class,"id");
+            ShoppingCart shoppingCart = BeanUtil.copyProperties(orderDetail, ShoppingCart.class, "id");
             shoppingCart.setUserId(userId);
             return shoppingCart;
         }).collect(Collectors.toList());
@@ -325,7 +323,175 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
 
     /**
+     * 管理端条件查询订单
+     *
+     * @param ordersPageQueryDTO
+     * @return
+     */
+    @Override
+    public Result<PageResult> conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+
+        int currentPage = ordersPageQueryDTO.getPage();
+        int pageSize = ordersPageQueryDTO.getPageSize();
+        Page<OrderVO> page = new Page<>(currentPage, pageSize);
+
+        IPage<OrderVO> orderVOPage = baseMapper.pageQueryOrderVO(page, ordersPageQueryDTO);
+
+        List<OrderVO> orderVOList = orderVOPage.getRecords();
+
+        orderVOList.forEach(orderVO -> orderVO.setOrderDishes(getOrderDishesStr(orderVO)));
+
+        return Result.success(new PageResult(orderVOPage.getTotal(), orderVOList));
+    }
+
+    /**
+     * 统计各状态订单数量
+     *
+     * @return
+     */
+    @Override
+    public Result<OrderStatisticsVO> statistics() {
+        int toBeConfirmed = count(new LambdaQueryWrapper<Orders>().eq(Orders::getStatus, Orders.TO_BE_CONFIRMED));
+        int confirmed = count(new LambdaQueryWrapper<Orders>().eq(Orders::getStatus, Orders.CONFIRMED));
+        int deliveryInProgress = count(new LambdaQueryWrapper<Orders>().eq(Orders::getStatus, Orders.DELIVERY_IN_PROGRESS));
+
+        OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();
+        orderStatisticsVO.setToBeConfirmed(toBeConfirmed);
+        orderStatisticsVO.setConfirmed(confirmed);
+        orderStatisticsVO.setDeliveryInProgress(deliveryInProgress);
+
+        return Result.success(orderStatisticsVO);
+    }
+
+
+    /**
+     * 商家拒单
+     *
+     * @param ordersRejectionDTO
+     * @return
+     */
+    @Override
+    public Result rejection(OrdersRejectionDTO ordersRejectionDTO) {
+        String rejectionReason = ordersRejectionDTO.getRejectionReason();
+        Long id = ordersRejectionDTO.getId();
+
+        Orders ordersDB = getById(id);
+
+        if (ordersDB == null || !ordersDB.getStatus().equals(Orders.TO_BE_CONFIRMED)) {
+            return Result.error("订单不存在");
+        }
+
+        //订单已付款
+        if (ordersDB.getPayStatus().equals(Orders.PAID)) {
+            // TODO 调用微信退款接口
+
+        }
+
+        //订单状态为待付款
+        Orders orders = new Orders();
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelTime(LocalDateTime.now());
+        orders.setCancelReason(rejectionReason);
+        orders.setId(ordersDB.getId());
+        updateById(orders);
+
+
+        return Result.success();
+    }
+
+    /**
+     * 商家取消订单
+     * @param ordersCancelDTO
+     * @return
+     */
+    @Override
+    public Result cancel(OrdersCancelDTO ordersCancelDTO) {
+
+        Long orderId = ordersCancelDTO.getId();
+        String cancelReason = ordersCancelDTO.getCancelReason();
+
+        Orders orderDB = getById(orderId);
+
+        if (orderDB == null){
+            return Result.error("订单不存在");
+        }
+
+        if (orderDB.getPayStatus().equals(Orders.PAID)){
+            // TODO 调用微信退款接口
+        }
+
+        Orders orders = new Orders();
+        orders.setId(orderId);
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelReason(cancelReason);
+        orders.setCancelTime(LocalDateTime.now());
+        updateById(orders);
+
+
+        return Result.success();
+    }
+
+    @Override
+    public Result delivery(Long id) {
+        // 根据id查询订单
+        Orders ordersDB = getById(id);
+
+        // 校验订单是否存在，并且状态为3
+        if (ordersDB == null || !ordersDB.getStatus().equals(Orders.CONFIRMED)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders orders = new Orders();
+        orders.setId(ordersDB.getId());
+        // 更新订单状态,状态转为派送中
+        orders.setStatus(Orders.DELIVERY_IN_PROGRESS);
+
+        updateById(orders);
+
+        return Result.success();
+    }
+
+
+    @Override
+    public Result complete(Long id) {
+        // 根据id查询订单
+        Orders ordersDB = getById(id);
+
+        // 校验订单是否存在，并且状态为4
+        if (ordersDB == null || !ordersDB.getStatus().equals(Orders.DELIVERY_IN_PROGRESS)) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Orders orders = new Orders();
+        orders.setId(ordersDB.getId());
+        // 更新订单状态,状态转为完成
+        orders.setStatus(Orders.COMPLETED);
+        orders.setDeliveryTime(LocalDateTime.now());
+
+        updateById(orders);
+        return Result.success();
+    }
+
+    /**
+     * 获取订单商品简报
+     *
+     * @param orderVO
+     * @return
+     */
+    private String getOrderDishesStr(OrderVO orderVO) {
+        List<OrderDetail> odList = orderVO.getOrderDetailList();
+
+        List<String> dishesStr = odList.stream()
+                .map(od -> od.getName() + "*" + od.getNumber() + ";")
+                .collect(Collectors.toList());
+
+        return String.join("", dishesStr);
+    }
+
+
+    /**
      * 判断是否超出配送范围
+     *
      * @param address
      */
     private void checkOutOfRange(String address) {
@@ -338,7 +504,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
         Integer distance = baiduUtil.getRouteDistance(shopLngLat, userLatLng);
 
-        if (distance > 5000){
+        if (distance > 5000) {
             //配送距离超过5000米
             throw new OrderBusinessException("超出配送范围");
         }
