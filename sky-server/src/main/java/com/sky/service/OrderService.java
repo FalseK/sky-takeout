@@ -48,4 +48,6 @@ public interface OrderService extends IService<Orders> {
     Result delivery(Long id);
 
     Result complete(Long id);
+
+    Result reminder(Long id);
 }

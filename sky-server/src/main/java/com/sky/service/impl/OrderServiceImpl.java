@@ -34,7 +34,9 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocketServer.WebSocketServer;
 import io.swagger.annotations.ApiOperation;
+import io.swagger.util.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -43,6 +45,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +75,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 
     @Autowired
     private BaiduUtil baiduUtil;
+
+    @Autowired
+    private WebSocketServer webSocketServer;
 
     @Transactional
     @Override
@@ -158,7 +164,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         Long userId = BaseContext.getCurrentId();
         User user = userService.getById(userId);
         String orderNumber = ordersPaymentDTO.getOrderNumber();
-        //调用微信支付接口，生成预支付交易单
+
+
+        // TODO 调用微信支付接口，生成预支付交易单
 //        JSONObject jsonObject = weChatPayUtil.pay(
 //                ordersPaymentDTO.getOrderNumber(), //商户订单号
 //                new BigDecimal(0.01), //支付金额，单位 元
@@ -170,6 +178,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
 //            throw new OrderBusinessException("该订单已支付");
 //        }
 
+
+
         JSONObject jsonObject = new JSONObject();
         jsonObject.append("code", "ORDERPAID");
 
@@ -179,13 +189,33 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         //为替代微信支付成功后的数据库订单状态更新，多定义一个方法进行修改
         //发现没有将支付时间 check_out属性赋值，所以在这里更新
 
-        LocalDateTime checkOutTime = LocalDateTime.now();
+        //根据订单号查询订单
+        Orders orderDB = getOne(new LambdaQueryWrapper<Orders>()
+                .eq(Orders::getNumber, orderNumber)
+                .eq(Orders::getUserId, userId));
 
-        update(new LambdaUpdateWrapper<Orders>().eq(Orders::getNumber, orderNumber)
-                .eq(Orders::getUserId, userId)
-                .set(Orders::getStatus, Orders.TO_BE_CONFIRMED)
-                .set(Orders::getPayStatus, Orders.PAID)
-                .set(Orders::getCheckoutTime, checkOutTime));
+        Orders orders = Orders.builder()
+                .id(orderDB.getId())
+                .status(Orders.TO_BE_CONFIRMED)
+                .payStatus(Orders.PAID)
+                .checkoutTime(LocalDateTime.now())
+                .build();
+
+
+        updateById(orders);
+
+
+        // 由于未调用微信支付接口，没有回调，点击支付按钮后直接调用websocket
+
+        Map map = new HashMap();
+        map.put("type",1);
+        map.put("orderId",orders.getId());
+        map.put("content", "订单号:" + orderNumber);
+
+        String json = JSONUtil.toJsonStr(map);
+
+        webSocketServer.sendToAllClient(json);
+
         return vo;
     }
 
@@ -469,6 +499,32 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
         orders.setDeliveryTime(LocalDateTime.now());
 
         updateById(orders);
+        return Result.success();
+    }
+
+    /**
+     * 客户催单
+     * @param id
+     * @return
+     */
+    @Override
+    public Result reminder(Long id) {
+
+        Orders orderDB = getById(id);
+
+        if (orderDB == null){
+            return Result.error("订单不存在");
+        }
+
+        Map map = new HashMap();
+        map.put("type",2);
+        map.put("orderId",id);
+        map.put("content","订单号：" + orderDB.getNumber());
+
+        String json = JSONUtil.toJsonStr(map);
+
+        webSocketServer.sendToAllClient(json);
+
         return Result.success();
     }
 
