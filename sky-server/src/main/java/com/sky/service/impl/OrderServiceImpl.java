@@ -381,9 +381,9 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Orders> implement
      */
     @Override
     public Result<OrderStatisticsVO> statistics() {
-        int toBeConfirmed = count(new LambdaQueryWrapper<Orders>().eq(Orders::getStatus, Orders.TO_BE_CONFIRMED));
-        int confirmed = count(new LambdaQueryWrapper<Orders>().eq(Orders::getStatus, Orders.CONFIRMED));
-        int deliveryInProgress = count(new LambdaQueryWrapper<Orders>().eq(Orders::getStatus, Orders.DELIVERY_IN_PROGRESS));
+        int toBeConfirmed = (int) count(new LambdaQueryWrapper<Orders>().eq(Orders::getStatus, Orders.TO_BE_CONFIRMED));
+        int confirmed = (int) count(new LambdaQueryWrapper<Orders>().eq(Orders::getStatus, Orders.CONFIRMED));
+        int deliveryInProgress = (int) count(new LambdaQueryWrapper<Orders>().eq(Orders::getStatus, Orders.DELIVERY_IN_PROGRESS));
 
         OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();
         orderStatisticsVO.setToBeConfirmed(toBeConfirmed);

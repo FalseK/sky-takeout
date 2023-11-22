@@ -21,30 +21,6 @@
 
     <resultMap id="orderVOMap" type="com.sky.vo.OrderVO" autoMapping="true">
         <id property="id" column="id"/>
-        <!--        <result property="number" column="number"/>-->
-        <!--        <result property="status" column="status"/>-->
-        <!--        <result property="userId" column="user_id"/>-->
-        <!--        <result property="addressBookId" column="address_book_id"/>-->
-        <!--        <result property="orderTime" column="order_time"/>-->
-        <!--        <result property="checkoutTime" column="checkout_time"/>-->
-        <!--        <result property="payMethod" column="pay_method"/>-->
-        <!--        <result property="payStatus" column="pay_status"/>-->
-        <!--        <result property="amount" column="amount"/>-->
-        <!--        <result property="remark" column="remark"/>-->
-        <!--        <result property="userName" column="user_name"/>-->
-        <!--        <result property="phone" column="phone"/>-->
-        <!--        <result property="address" column="address"/>-->
-        <!--        <result property="consignee" column="consignee"/>-->
-        <!--        <result property="cancelReason" column="cancel_reason"/>-->
-        <!--        <result property="rejectionReason" column="rejection_reason"/>-->
-        <!--        <result property="cancelTime" column="cancel_time"/>-->
-        <!--        <result property="estimatedDeliveryTime" column="estimated_delivery_time"/>-->
-        <!--        <result property="deliveryStatus" column="delivery_status"/>-->
-        <!--        <result property="deliveryTime" column="delivery_time"/>-->
-        <!--        <result property="packAmount" column="pack_amount"/>-->
-        <!--        <result property="tablewareNumber" column="tableware_number"/>-->
-        <!--        <result property="tablewareStatus" column="tableware_status"/>-->
-
         <collection property="orderDetailList" ofType="com.sky.entity.OrderDetail">
             <id property="id" column="order_detail_id"/>
             <result property="name" column="name"/>
@@ -58,6 +34,7 @@
         </collection>
     </resultMap>
 
+    
     <select id="pageQueryOrderVO" resultMap="orderVOMap">
         <include refid="selectOrdersVO"/>
         <where>
@@ -85,6 +62,24 @@
         where o.id = #{id}
     </select>
 
+
+
+    <select id="sumAmountGroupByOrderTime" resultType="java.util.Map">
+        select sum(amount) sumAmount,DATE_FORMAT(order_time,'%Y-%m-%d') orderTime
+        from orders
+        <where>
+            <if test="#{status} != null">
+                and status = #{status}
+            </if>
+            <if test="#{begin} != null">
+                and order_time &gt; #{begin}
+            </if>
+            <if test="#{end} != null">
+                and order_time &lt; #{end}
+            </if>
+        </where>
+        group by DATE_FORMAT(order_time,'%Y-%m-%d')
+    </select>
 
 
 </mapper>

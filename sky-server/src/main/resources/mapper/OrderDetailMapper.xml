@@ -7,9 +7,24 @@
 
     <insert id="insertBatch">
         insert into order_detail (id, name, image, order_id, dish_id, setmeal_id, dish_flavor, number, amount)
-            values
-        <foreach collection="orderDetailList" item="od"  separator=",">
+        values
+        <foreach collection="orderDetailList" item="od" separator=",">
             (#{od.id},#{od.name},#{od.image},#{od.orderId},#{od.dishId},#{od.setmealId},#{od.dishFlavor},#{od.number},#{od.amount})
         </foreach>
     </insert>
+
+    <select id="top10Goods" resultType="com.sky.dto.GoodsSalesDTO">
+        select name, count(dish_id) as number
+        from order_detail od left join orders o on od.order_id = o.id
+        <where>
+            <if test="begin != null and end != null">
+                and order_time between #{begin} and #{end}
+            </if>
+            <if test="status != null">
+                and o.status = #{status}
+            </if>
+        </where>
+        group by od.dish_id,name
+        order by number desc
+    </select>
 </mapper>
