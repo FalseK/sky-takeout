@@ -2,9 +2,11 @@ package com.sky.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.sky.dto.OrderCountDto;
 import com.sky.dto.OrdersDTO;
 import com.sky.dto.OrdersPageQueryDTO;
 import com.sky.entity.Orders;
+import com.sky.vo.OrderOverViewVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderVO;
 import org.apache.ibatis.annotations.MapKey;
@@ -24,5 +26,10 @@ public interface OrderMapper extends BaseMapper<Orders> {
 
     @MapKey("orderTime")
     Map<String,Map<String,Object>> sumAmountGroupByOrderTime(Map map);
+
+
+    OrderCountDto countTodayOrders(LocalDate now);
+
+    OrderOverViewVO overViewOrders(LocalDate now);
 
 }

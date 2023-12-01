@@ -201,7 +201,7 @@ public class ReportServiceImpl implements ReportService {
         String validOrderCountStr = getStrByMap(dateList, validOrderCountMap);
 
         //计算订单完成率
-        double orderCompletionRate = ((double) validOrders / (double) totalOrders);
+        double orderCompletionRate = ((double) validOrders / (double) (totalOrders == 0 ? 1 : totalOrders));
 
         OrderReportVO orderReportVO = OrderReportVO.builder()
                 .dateList(dateStr)

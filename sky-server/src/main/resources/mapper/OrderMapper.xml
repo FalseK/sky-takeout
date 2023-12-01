@@ -81,5 +81,21 @@
         group by DATE_FORMAT(order_time,'%Y-%m-%d')
     </select>
 
+    <select id="countTodayOrders" resultType="com.sky.dto.OrderCountDto">
+        select count(if(#{now} = DATE_FORMAT(o.order_time, '%Y-%m-%d'),1,null)) as totalOrders,
+               count(if(#{now} = DATE_FORMAT(o.order_time, '%Y-%m-%d') &amp;&amp; o.status = 5,1,null)) as validOrders,
+               sum(if(#{now} = DATE_FORMAT(o.order_time, '%Y-%m-%d') &amp;&amp; status = 5,amount,0)) as turnover
+        from orders o
+    </select>
+    <select id="overViewOrders" resultType="com.sky.vo.OrderOverViewVO">
+        select count(if(#{now} = DATE_FORMAT(o.order_time, '%Y-%m-%d'),1,null)) as allOrders,
+               count(if(#{now} = DATE_FORMAT(o.order_time, '%Y-%m-%d') &amp;&amp; o.status = 2,1,null)) as waitingOrders,
+               count(if(#{now} = DATE_FORMAT(o.order_time, '%Y-%m-%d') &amp;&amp; o.status = 3,1,null)) as deliveredOrders,
+               count(if(#{now} = DATE_FORMAT(o.order_time, '%Y-%m-%d') &amp;&amp; o.status = 5,1,null)) as completedOrders,
+               count(if(#{now} = DATE_FORMAT(o.order_time, '%Y-%m-%d') &amp;&amp; o.status = 6,1,null)) as cancelledOrders
+        from orders o
+
+    </select>
+
 
 </mapper>
